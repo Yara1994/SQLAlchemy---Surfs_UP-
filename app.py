@@ -50,63 +50,87 @@ def welcome():
         f"<br/>"
         f"Available Routes:<br/>"
         f"<br/>"
-        f"* /api/v1.0/precipitation - last 12 month of precipitation"
+        f"* /api/v1.0/precipitation"
         f"<br/>"
         f"* /api/v1.0/stations"
         f"<br/>"
         f"* /api/v1.0/tobs"
         f"<br/>"
-        f"* /api/v1.0/<start>"
+        f"* /api/v1.0/2017-07-20"
         f"<br/>"
-        f"* /api/v1.0/<start>/<end>"
+        f"* /api/v1.0/2017-07-20/2017-07-27"
     )
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
 
-    # Design a query to retrieve the last 12 months of precipitation data and plot the results
-
     max_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
 
     max_date = dt.date(2017, 8, 23)
 
-    #year_ago = dt.datetime(year=max_date.year-1, month=max_date.month, day=max_date.day).date()
-
     year_ago = max_date - dt.timedelta(days = 365)
-
-    # Perform a query to retrieve the data and precipitation scores
 
     query = session.query(Measurement.date, Measurement.prcp).filter(Measurement.date >= year_ago).all()
 
-    # Convert list of tuples into normal list
     precipitation = dict(query)
 
     return jsonify(precipitation)
 
 
+@app.route("/api/v1.0/stations")
+def stations():
+
+    stations = session.query(Station.station).all()
+
+    list_of_stations = list(np.ravel(stations))
+
+    return jsonify(list_of_stations)
+
+
+@app.route("/api/v1.0/tobs")
+def tobs():
+
+    maximal_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
+
+    maximal_date = dt.date(2017, 8, 23)
+
+    one_year_ago = maximal_date - dt.timedelta(days = 365)
+
+    tobs_query = session.query(Measurement.date, Measurement.tobs).filter(Measurement.date >= one_year_ago).all()
+
+    tobs_list = list(tobs_query)
+
+    return jsonify(tobs_list)
+
+
+@app.route("/api/v1.0/2017-07-20")
+def start_date():
+
+    first_vacation_date = "2017-07-20"
+
+    from_start = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).filter(Measurement.date >= first_vacation_date).group_by(Measurement.date).all()
+    
+    from_start_list = list(from_start)
+
+    return jsonify(from_start_list)
+
+
+@app.route("/api/v1.0/2017-07-20/2017-07-27")
+def start_end_date():
+
+    first_vacation_date = "2017-07-20"
+    last_vacation_date = "2017-07-27"
+
+    from_start_to_end = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).filter(Measurement.date >= first_vacation_date).filter(Measurement.date <= last_vacation_date).group_by(Measurement.date).all()
+
+    from_start_to_end_list = list(from_start_to_end)
+
+    return jsonify(from_start_to_end_list)
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
 if __name__ == "__main__":
     app.run(debug = True)
 
